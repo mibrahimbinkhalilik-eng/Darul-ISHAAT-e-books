@@ -16,7 +16,7 @@
 <div class="grid" id="grid"></div><div class="empty" id="empty" hidden>No books match your search. Try a shorter word.</div><button class="btn alt more" id="more" hidden style="max-width:240px">Show more books</button></main>
 <footer><div class="wrap">© Darul Ishaat E-Book Library · Orders are confirmed on WhatsApp.</div></footer>
 <aside id="cart"><h2>Your cart <button class="qb" id="cx" style="float:right">✕</button></h2><div id="items"></div><h3>Total: <span id="total"></span></h3>
-<form id="f" onsubmit="return false"><input name="n" placeholder="Full name" autocomplete="name"><input name="e" type="email" placeholder="Email" autocomplete="email"><input name="p" placeholder="Phone / WhatsApp" autocomplete="tel"><input name="a" placeholder="Delivery address" autocomplete="street-address"></form><p class="small" id="err" style="color:#b42318"></p>
+<form id="f" onsubmit="return false"><input name="n" placeholder="Full name (نام)" autocomplete="name"><input name="p" type="tel" inputmode="tel" placeholder="WhatsApp number (واٹس ایپ نمبر)" autocomplete="tel"></form><p class="small" id="err" style="color:#b42318"></p>
 <div class="pay"><button class="btn" onclick="order('WhatsApp (Cash on delivery)')">Order on WhatsApp</button><button class="btn" onclick="order('Easypaisa')">Pay with Easypaisa</button><button class="btn" onclick="order('JazzCash')">Pay with JazzCash</button><button class="btn" id="cardbtn" onclick="order('Card')">Debit / Credit card (Visa · Mastercard)</button></div><p class="small" id="pay"></p></aside>
 <a id="help" class="wa" target="_blank" rel="noopener">💬 Chat with a Darul Ishaat representative</a>
 <script src="assets/js/config.js"></script>
