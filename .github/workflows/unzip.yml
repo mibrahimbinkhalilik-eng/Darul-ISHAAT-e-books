@@ -9,13 +9,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Move files into folders
         run: |
-          set -e
-          mv -f app.js assets/js/app.js
-          mv -f style.css assets/css/style.css
-          mv -f catalog.js data/catalog.js
-          mv -f series.js data/series.js
+          mkdir -p api assets/js assets/css data
+          for f in payfast-webhook.js:api app.js:assets/js reader.js:assets/js style.css:assets/css reader.css:assets/css catalog.js:data series.js:data config.js:assets/js; do
+            name="${f%%:*}"; dir="${f##*:}"
+            if [ -f "$name" ]; then mv -f "$name" "$dir/$name"; echo "moved $name -> $dir/"; fi
+          done
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add -A
-          git commit -m "Move updated files into folders"
-          git push
+          if git diff --cached --quiet; then echo "nothing to move"; else git commit -m "Move files into folders" && git push; fi
