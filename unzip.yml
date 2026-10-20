@@ -1,0 +1,21 @@
+name: Unpack site
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move files into folders
+        run: |
+          set -e
+          mv -f app.js assets/js/app.js
+          mv -f style.css assets/css/style.css
+          mv -f catalog.js data/catalog.js
+          mv -f series.js data/series.js
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "Move updated files into folders"
+          git push
