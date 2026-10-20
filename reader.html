@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Darul Ishaat E-Book</title>
+<link rel="stylesheet" href="assets/css/reader.css">
+</head>
+<body>
+<div id="top"><a href="index.html" aria-label="Back to library">&larr;</a><input id="q" type="search" placeholder="Search in book &mdash; English / عربی" autocomplete="off"><span id="cnt"></span></div>
+<div id="pages"></div>
+<div id="shield">Content hidden while this window is not in focus.<br>Return to the reader to continue.</div>
+<div id="bar"><button id="pv">Previous</button><span id="goto">Page <input id="pg" type="number" min="1" value="1"> / <span id="np"></span></span><button id="nx">Next</button></div>
+<script src="assets/js/config.js"></script>
+<script src="data/catalog.js"></script>
+<script>
+var b=new URLSearchParams(location.search).get("b");
+if(!b){location.replace("index.html")}else{document.write('<script src="books/'+encodeURIComponent(b)+'/words.js"><\/script>')}
+</script>
+<script src="assets/js/reader.js"></script>
+</body>
+</html>
