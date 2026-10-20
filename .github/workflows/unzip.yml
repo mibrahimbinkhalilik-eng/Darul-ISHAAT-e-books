@@ -1,0 +1,24 @@
+name: Unpack site
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip into folders
+        run: |
+          set -e
+          n=$(ls 0*-*.zip | wc -l)
+          [ "$n" -eq 20 ] || { echo "Expected 20 zips, found $n"; exit 1; }
+          mkdir /tmp/x
+          for z in 0*-*.zip; do unzip -oq "$z" -d /tmp/x; done
+          rm -f index-165.html process_book.py verify.py reader.css style.css
+          cp -r /tmp/x/darul-ishaat-ebook/. .
+          rm -f 0*-*.zip
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "Unpack site into folders"
+          git push
