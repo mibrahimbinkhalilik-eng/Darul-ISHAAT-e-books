@@ -1,0 +1,5 @@
+.DS_Store
+Thumbs.db
+tools/.cache/
+*.pdf
+node_modules/
