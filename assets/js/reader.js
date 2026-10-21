@@ -4,7 +4,7 @@ const id=new URLSearchParams(location.search).get("b"),IMG=(window.CFG&&CFG.imag
 const bk=CATALOG.find(x=>x.id==id);
 if(!bk){document.body.innerHTML='<p style="padding:24px;font:16px system-ui">Book not found. <a href="index.html">Back to the library</a></p>';throw new Error("book not found")}
 const LIM=Math.min(bk.pages,bk.preview||12),P=$("#pages");let M=[],cur=-1;
-const norm=s=>s.normalize("NFKD").replace(/[ً-ٰٟۖ-ۭـ]/g,"").replace(/[إأآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").toLowerCase();
+const norm=s=>s.normalize("NFKD").replace(/[ً-ٰٟۖ-ۭـ]/g,"").replace(/[إأآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").toLowerCase();
 const NW=WORDS.map(ws=>ws.map(w=>norm(w[0])));document.title=bk.title;$("#np").textContent=bk.pages;
 for(let p=1;p<=bk.pages;p++){const d=document.createElement("div");d.className="pg";d.dataset.p=p;d.style.aspectRatio=bk.ar||"414/648";if(p>LIM)d.innerHTML='<div class=lock>Page '+p+'<br>This is the free sample.<br>Order the full book to get the PDF.<br><a href="index.html" style="color:#14532d;font-weight:700">Back to the library</a></div>';P.appendChild(d)}
 const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const d=e.target;if(!d.dataset.l&&+d.dataset.p<=LIM){d.dataset.l=1;drawPage(d,d.dataset.p)}hl(+d.dataset.p)}}),{rootMargin:"800px"});
