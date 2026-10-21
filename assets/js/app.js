@@ -1,40 +1,39 @@
-// Reader: continuous pages, highlighted search with Previous/Next, page jump, and front-end copy/print/focus-loss protections.
-// Static files only - no server needed. Page images: books/<id>/pages/0001.webp ...  Search data: books/<id>/words.js
-const id=new URLSearchParams(location.search).get("b"),IMG=(window.CFG&&CFG.imageBase)||"books/",$=s=>document.querySelector(s);
-const bk=CATALOG.find(x=>x.id==id);
-if(!bk){document.body.innerHTML='<p style="padding:24px;font:16px system-ui">Book not found. <a href="index.html">Back to the library</a></p>';throw new Error("book not found")}
-const LIM=Math.min(bk.pages,bk.preview||12),P=$("#pages");let M=[],cur=-1;
-const norm=s=>s.normalize("NFKD").replace(/[ً-ٰٟۖ-ۭـ]/g,"").replace(/[إأآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").toLowerCase();
-const NW=WORDS.map(ws=>ws.map(w=>norm(w[0])));document.title=bk.title;$("#np").textContent=bk.pages;
-for(let p=1;p<=bk.pages;p++){const d=document.createElement("div");d.className="pg";d.dataset.p=p;d.style.aspectRatio=bk.ar||"414/648";if(p>LIM)d.innerHTML='<div class=lock>Page '+p+'<br>This is the free sample.<br>Order the full book to get the PDF.<br><a href="index.html" style="color:#14532d;font-weight:700">Back to the library</a></div>';P.appendChild(d)}
-const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const d=e.target;if(!d.dataset.l&&+d.dataset.p<=LIM){d.dataset.l=1;drawPage(d,d.dataset.p)}hl(+d.dataset.p)}}),{rootMargin:"800px"});
-document.querySelectorAll(".pg").forEach(d=>io.observe(d));
-function hl(p){const d=P.children[p-1];d.querySelectorAll(".mk").forEach(x=>x.remove());
- M.forEach((m,k)=>{if(m.p!=p)return;for(let j=0;j<m.n;j++){const w=WORDS[p-1][m.i+j],x=document.createElement("div");x.className="mk"+(k==cur?" cur":"");
-  Object.assign(x.style,{left:w[1]/10+"%",top:(w[2]-3)/10+"%",width:w[3]/10+"%",height:(w[4]+6)/10+"%"});d.appendChild(x)}})}
-function search(){const toks=norm($("#q").value.trim()).split(/\s+/).filter(Boolean),old=new Set(M.map(m=>m.p));M=[];cur=-1;
- if(toks[0])for(let p=1;p<=LIM;p++){const a=NW[p-1];for(let i=0;i<a.length;i++){let ok=a[i].includes(toks[0]);for(let j=1;ok&&j<toks.length;j++)ok=i+j<a.length&&a[i+j].includes(toks[j]);if(ok)M.push({p,i,n:toks.length})}}
- new Set([...old,...M.map(m=>m.p)]).forEach(hl);$("#cnt").textContent=M.length?"":(toks[0]?"0 found":"");if(M.length)step(1)}
-function step(dir){if(!M.length)return;const o=cur;cur=(cur+dir+M.length)%M.length;if(o>=0&&M[o])hl(M[o].p);const m=M[cur];hl(m.p);$("#cnt").textContent=(cur+1)+"/"+M.length;
- const d=P.children[m.p-1],w=WORDS[m.p-1][m.i];scrollTo({top:d.getBoundingClientRect().top+scrollY+d.offsetHeight*w[2]/1000-innerHeight*.4,behavior:"smooth"})}
-function goPage(n){n=Math.max(1,Math.min(bk.pages,n|0));P.children[n-1].scrollIntoView({block:"start"});}
-let t;$("#q").oninput=()=>{clearTimeout(t);t=setTimeout(search,250)};$("#q").onkeydown=e=>{if(e.key=="Enter"){e.preventDefault();step(e.shiftKey?-1:1)}};
-$("#pv").onclick=()=>step(-1);$("#nx").onclick=()=>step(1);$("#pg").onchange=e=>goPage(+e.target.value);
-addEventListener("scroll",()=>{const mid=scrollY+innerHeight/2;for(const d of P.children){if(d.offsetTop+d.offsetHeight>mid){if(document.activeElement!==$("#pg"))$("#pg").value=d.dataset.p;break}}},{passive:true});
-
-// ---- Protection layer (front-end deterrents) ----
-function pageUrl(p){return IMG+id+"/pages/"+String(p).padStart(4,"0")+".webp"}
-function drawPage(d,p){const c=document.createElement("canvas"),i=new Image();i.decoding="async";
- i.onload=()=>{c.width=i.naturalWidth;c.height=i.naturalHeight;c.getContext("2d").drawImage(i,0,0);d.prepend(c)};
- i.onerror=()=>{d.innerHTML="<div class=lock>Page "+p+" could not be loaded.<br>Please check your connection and reload.</div>"};
- i.src=pageUrl(p);c.oncontextmenu=e=>e.preventDefault()}
-const isField=e=>e.target&&(e.target.id==="q"||e.target.id==="pg");
-["contextmenu","copy","cut","dragstart","selectstart"].forEach(t=>document.addEventListener(t,e=>{if(!isField(e))e.preventDefault()}));
-function hideNow(){document.body.classList.add("hide")}function showNow(){if(document.hasFocus()&&!document.hidden)document.body.classList.remove("hide")}
-function nope(e){e.preventDefault();hideNow();try{navigator.clipboard.writeText("Copying is disabled")}catch(_){}setTimeout(showNow,600)}
-document.addEventListener("keydown",e=>{const k=e.key.toLowerCase(),c=e.ctrlKey||e.metaKey;
- if(k==="f12"||k==="printscreen"||(c&&["s","p","c","u","a","x"].includes(k)&&!isField(e))||(c&&["s","p","u"].includes(k))||(c&&e.shiftKey&&["i","j","c","s"].includes(k)))nope(e)});
-document.addEventListener("keyup",e=>{if(e.key==="PrintScreen")nope(e)});
-addEventListener("beforeprint",hideNow);addEventListener("afterprint",showNow);
-addEventListener("blur",hideNow);addEventListener("focus",showNow);
-document.addEventListener("visibilitychange",()=>document.hidden?hideNow():showNow());
+const C=window.CFG,IMG=C.imageBase||"books/",$=s=>document.querySelector(s),wa=t=>`https://wa.me/${C.whatsapp}?text=${encodeURIComponent(t)}`,B=window.CATALOG,S=window.SERIES||[],PER=24;let cart={},cat="All",lang="All",q="",sort="rel",shown=PER;
+try{cart=JSON.parse(localStorage.cart||"{}")}catch(e){}
+const BANK=C.bank||{name:"Darul Ishaat",acc:"0155-0100494442",bank:"Meezan Bank"},buy=id=>C.buyLinks&&C.buyLinks[id]?`<a class=btn href="${esc(C.buyLinks[id])}" target=_blank rel=noopener>Buy now (Card)</a>`:"",fmt=n=>C.currency+" "+n.toLocaleString(),save=()=>{try{localStorage.cart=JSON.stringify(cart)}catch(e){}draw()};
+const norm=s=>(s||"").normalize("NFKD").replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g,"").replace(/[إأآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/[ڪک]/g,"ك").replace(/[ۍی]/g,"ي").toLowerCase();
+const esc=s=>(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+B.forEach(b=>{b._t=norm(b.title);b._h=norm([b.title,b.alt,b.author,b.category,b.language,b.desc].join(" "))});
+const vols=id=>B.filter(b=>b.series==id).sort((x,y)=>x.vol-y.vol);
+const U=[...B.filter(b=>!b.series||!S.some(s=>s.id==b.series)),...S.filter(s=>vols(s.id).length).map(s=>{const v=vols(s.id);return{...s,_s:1,price:Math.min(...v.map(x=>x.price)),pages:v.reduce((a,x)=>a+x.pages,0),cover:v[0].cover,_cb:v[0].id,_t:norm(s.title),_h:norm([s.title,s.alt,s.author,s.category,s.language,s.desc,...v.map(x=>x.title)].join(" "))}})];
+const tot=()=>B.filter(b=>cart[b.id]).reduce((s,b)=>s+b.price*cart[b.id],0);
+function hi(t){const ws=norm(q).split(/\s+/).filter(Boolean);let o=esc(t);if(!ws.length||/[^\u0000-\u024f]/.test(t))return o;ws.forEach(w=>{o=o.replace(new RegExp("("+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")(?![^<]*>)","ig"),"<mark>$1</mark>")});return o}
+function res(){const ws=norm(q).split(/\s+/).filter(Boolean);let r=U.filter(b=>(cat=="All"||b.category==cat)&&(lang=="All"||b.language==lang)&&ws.every(w=>b._h.includes(w)));
+ if(sort=="rel"&&ws.length)r.sort((a,b)=>ws.filter(w=>b._t.includes(w)).length-ws.filter(w=>a._t.includes(w)).length);
+ if(sort=="az")r.sort((a,b)=>a.title.localeCompare(b.title));if(sort=="pl")r.sort((a,b)=>a.price-b.price);if(sort=="ph")r.sort((a,b)=>b.price-a.price);return r}
+function list(){const r=res();$("#meta").textContent=r.length+" book"+(r.length==1?"":"s");
+ $("#grid").innerHTML=r.slice(0,shown).map(b=>b._s?`<article class=card><a class=cv href="#" onclick="return showSet('${b.id}')"><img loading=lazy alt="" src="${IMG}${b._cb}/${b.cover||'cover.webp'}"></a><div class=bd><h3>${hi(b.title)}</h3><span class=sub>${esc(b.author)||esc(b.category)} · ${b.language}</span><span class=sub>${b.total} volumes · ${vols(b.id).length} available</span><span class=pr>from ${fmt(b.price)} / volume</span><div class=acts><button class="btn alt" onclick="showSet('${b.id}')">View volumes</button><button class=btn onclick="addAll('${b.id}')">Add all</button></div><a class=ask target=_blank href="${wa('Assalamu alaikum, I have a question about: '+b.title)}">💬 Ask a representative</a></div></article>`:`<article class=card><a class=cv href="reader.html?b=${b.id}"><img loading=lazy alt="" src="${IMG}${b.id}/${b.cover||'cover.webp'}"></a><div class=bd><h3>${hi(b.title)}</h3><span class=sub>${esc(b.author)||esc(b.category)} · ${b.language}</span><span class=sub>${b.pages} pages${b.volumes>1?" · "+b.volumes+" volumes":""}</span><span class=pr>${fmt(b.price)}</span><div class=acts><a class="btn alt" href="reader.html?b=${b.id}">Read online</a><button class=btn onclick="add('${b.id}')">Add</button>${buy(b.id)}</div><a class=ask target=_blank href="${wa('Assalamu alaikum, I have a question about: '+b.title)}">💬 Ask a representative</a></div></article>`).join("")||"";
+ $("#empty").hidden=r.length>0;$("#more").hidden=r.length<=shown}
+function chips(){const cs=["All",...new Set(U.map(b=>b.category))];$("#cats").innerHTML=cs.map(c=>`<button class=chip aria-pressed="${c==cat}" onclick="setCat('${c}')">${c}</button>`).join("");
+ const ls=["All",...new Set(U.map(b=>b.language))];$("#lang").innerHTML=ls.map(l=>`<option value="${l}">${l=="All"?"All languages":l}</option>`).join("")}
+window.setCat=c=>{cat=c;shown=PER;chips();list()};
+function draw(){$("#cc").textContent=Object.values(cart).reduce((a,b)=>a+b,0);
+ $("#items").innerHTML=B.filter(b=>cart[b.id]).map(b=>`<div class=row><span>${esc(b.title)}<br><small>${fmt(b.price)} × ${cart[b.id]}</small></span><span><button class=qb onclick="chg('${b.id}',-1)">−</button> <button class=qb onclick="chg('${b.id}',1)">+</button></span></div>`).join("")||"<p class=small>Your cart is empty.</p>";$("#total").textContent=fmt(tot())}
+window.chg=(id,d)=>{cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];save()};
+window.addAll=id=>{vols(id).forEach(v=>{if(!cart[v.id])cart[v.id]=1});save();$("#cart").classList.add("open")};
+window.closeSet=()=>{const m=$("#setm");if(m)m.remove()};
+window.showSet=id=>{closeSet();const s=S.find(x=>x.id==id),v=vols(id),m=document.createElement("div");m.id="setm";m.className="setm";m.onclick=e=>{if(e.target==m)closeSet()};
+ let rows="";for(let i=1;i<=s.total;i++){const b=v.find(x=>x.vol==i);rows+=b?`<div class=vrow><img alt="" src="${IMG}${b.id}/${b.cover||'cover.webp'}"><div><b>Volume ${i}</b><small>${b.pages} pages · ${fmt(b.price)}</small></div><a class="btn alt" href="reader.html?b=${b.id}">Read</a><button class=btn onclick="add('${b.id}');closeSet()">Add</button>${buy(b.id)}</div>`:`<div class="vrow soon"><div class=vph>${i}</div><div><b>Volume ${i}</b><small>Coming soon</small></div></div>`}
+ m.innerHTML=`<div class=setb><button class=qb onclick="closeSet()" style="float:right">✕</button><h2>${esc(s.title)}</h2><p class=small>${s.total} volumes · ${v.length} available now</p>${rows}<button class=btn onclick="addAll('${id}');closeSet()" style="margin-top:10px">Add all available volumes</button></div>`;document.body.appendChild(m);return false};
+window.add=id=>{chg(id,1);$("#cart").classList.add("open")};
+window.order=m=>{const f=$("#f"),n=f.n.value.trim(),p=f.p.value.trim();if(!n||p.replace(/\D/g,"").length<10){$("#err").textContent="Please enter your name and WhatsApp number.";return}if(!tot()){$("#err").textContent="Your cart is empty.";return}$("#err").textContent="";
+ const lines=B.filter(b=>cart[b.id]).map(b=>`• ${b.title} [${b.id}] × ${cart[b.id]} = ${fmt(b.price*cart[b.id])}`).join("\n");
+ const msg=`*New Order*\n${lines}\n*Total: ${fmt(tot())}*\nPayment: ${m}\nName: ${n}\nWhatsApp: ${p}`+(/Easypaisa|JazzCash/.test(m)?`\n\n*Pay to:*\n${m=="Easypaisa"?`Easypaisa: ${C.easypaisa.number} (${C.easypaisa.name})`:(C.jazzcash&&C.jazzcash.number?`JazzCash: ${C.jazzcash.number} (${C.jazzcash.name})`:"JazzCash: representative will confirm the number")}\nBank: ${BANK.bank} - ${BANK.name} - ${BANK.acc}\n(I will send the payment screenshot here)`:m=="Card"?"\n(Please send me a secure card payment link)":"");
+ if(m=="Card"&&C.payfastApi){$("#err").textContent="Opening secure payment page…";fetch(C.payfastApi+"?action=start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ids:Object.keys(cart),name:n,phone:p})}).then(r=>r.json()).then(d=>{if(!d.url)throw 0;const fm=document.createElement("form");fm.method="POST";fm.action=d.url;Object.entries(d.fields).forEach(([k,v])=>{const i=document.createElement("input");i.type="hidden";i.name=k;i.value=v;fm.appendChild(i)});document.body.appendChild(fm);fm.submit()}).catch(()=>{$("#err").textContent="Online payment is not available right now. Please use WhatsApp."});return}
+ if(m=="Card"&&C.cardCheckoutUrl){location.href=C.cardCheckoutUrl;return}
+ const l=document.createElement("a");l.href=`https://wa.me/${C.whatsapp}?text=${encodeURIComponent(msg)}`;l.target="_blank";document.body.appendChild(l);l.click()};
+$("#q").oninput=e=>{q=e.target.value;shown=PER;list()};$("#sort").onchange=e=>{sort=e.target.value;list()};$("#lang").onchange=e=>{lang=e.target.value;shown=PER;list()};
+$("#more").onclick=()=>{shown+=PER;list()};$("#cb").onclick=()=>$("#cart").classList.toggle("open");$("#cx").onclick=()=>$("#cart").classList.remove("open");
+$("#help").href=wa("Assalamu alaikum, I need help from a Darul Ishaat representative.");$("#pay").innerHTML=`Easypaisa: <b>${esc(C.easypaisa.number)}</b> (${esc(C.easypaisa.name)})<br>${C.jazzcash&&C.jazzcash.number?`JazzCash: <b>${esc(C.jazzcash.number)}</b> (${esc(C.jazzcash.name)})<br>`:""}${C.jazzcash&&C.jazzcash.number?"":"For JazzCash or Debit/Credit card, press the button and our representative will send you the details on WhatsApp.<br>"}Bank (${esc(BANK.bank)}): <b>${esc(BANK.acc)}</b> (${esc(BANK.name)})<br>Send the payment, then share the screenshot on WhatsApp. After we confirm your payment, our representative will send your PDF download link on WhatsApp.`;
+const cbn=$("#cardbtn");if(cbn&&C.payfastApi)cbn.textContent="Pay online: Easypaisa · JazzCash · Cards (PayFast)";
+chips();list();draw();
