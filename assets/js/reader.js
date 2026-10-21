@@ -3,17 +3,17 @@
 const id=new URLSearchParams(location.search).get("b"),IMG=(window.CFG&&CFG.imageBase)||"books/",$=s=>document.querySelector(s);
 const bk=CATALOG.find(x=>x.id==id);
 if(!bk){document.body.innerHTML='<p style="padding:24px;font:16px system-ui">Book not found. <a href="index.html">Back to the library</a></p>';throw new Error("book not found")}
-const P=$("#pages");let M=[],cur=-1;
-const norm=s=>s.normalize("NFKD").replace(/[ً-ٰٟۖ-ۭـ]/g,"").replace(/[إأآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").toLowerCase();
+const LIM=Math.min(bk.pages,bk.preview||12),P=$("#pages");let M=[],cur=-1;
+const norm=s=>s.normalize("NFKD").replace(/[ً-ٰٟۖ-ۭـ]/g,"").replace(/[إأآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").toLowerCase();
 const NW=WORDS.map(ws=>ws.map(w=>norm(w[0])));document.title=bk.title;$("#np").textContent=bk.pages;
-for(let p=1;p<=bk.pages;p++){const d=document.createElement("div");d.className="pg";d.dataset.p=p;d.style.aspectRatio=bk.ar||"414/648";P.appendChild(d)}
-const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const d=e.target;if(!d.dataset.l){d.dataset.l=1;drawPage(d,d.dataset.p)}hl(+d.dataset.p)}}),{rootMargin:"800px"});
+for(let p=1;p<=bk.pages;p++){const d=document.createElement("div");d.className="pg";d.dataset.p=p;d.style.aspectRatio=bk.ar||"414/648";if(p>LIM)d.innerHTML='<div class=lock>Page '+p+'<br>This is the free sample.<br>Order the full book to get the PDF.<br><a href="index.html" style="color:#14532d;font-weight:700">Back to the library</a></div>';P.appendChild(d)}
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const d=e.target;if(!d.dataset.l&&+d.dataset.p<=LIM){d.dataset.l=1;drawPage(d,d.dataset.p)}hl(+d.dataset.p)}}),{rootMargin:"800px"});
 document.querySelectorAll(".pg").forEach(d=>io.observe(d));
 function hl(p){const d=P.children[p-1];d.querySelectorAll(".mk").forEach(x=>x.remove());
  M.forEach((m,k)=>{if(m.p!=p)return;for(let j=0;j<m.n;j++){const w=WORDS[p-1][m.i+j],x=document.createElement("div");x.className="mk"+(k==cur?" cur":"");
   Object.assign(x.style,{left:w[1]/10+"%",top:(w[2]-3)/10+"%",width:w[3]/10+"%",height:(w[4]+6)/10+"%"});d.appendChild(x)}})}
 function search(){const toks=norm($("#q").value.trim()).split(/\s+/).filter(Boolean),old=new Set(M.map(m=>m.p));M=[];cur=-1;
- if(toks[0])for(let p=1;p<=NW.length;p++){const a=NW[p-1];for(let i=0;i<a.length;i++){let ok=a[i].includes(toks[0]);for(let j=1;ok&&j<toks.length;j++)ok=i+j<a.length&&a[i+j].includes(toks[j]);if(ok)M.push({p,i,n:toks.length})}}
+ if(toks[0])for(let p=1;p<=LIM;p++){const a=NW[p-1];for(let i=0;i<a.length;i++){let ok=a[i].includes(toks[0]);for(let j=1;ok&&j<toks.length;j++)ok=i+j<a.length&&a[i+j].includes(toks[j]);if(ok)M.push({p,i,n:toks.length})}}
  new Set([...old,...M.map(m=>m.p)]).forEach(hl);$("#cnt").textContent=M.length?"":(toks[0]?"0 found":"");if(M.length)step(1)}
 function step(dir){if(!M.length)return;const o=cur;cur=(cur+dir+M.length)%M.length;if(o>=0&&M[o])hl(M[o].p);const m=M[cur];hl(m.p);$("#cnt").textContent=(cur+1)+"/"+M.length;
  const d=P.children[m.p-1],w=WORDS[m.p-1][m.i];scrollTo({top:d.getBoundingClientRect().top+scrollY+d.offsetHeight*w[2]/1000-innerHeight*.4,behavior:"smooth"})}
