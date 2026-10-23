@@ -29,7 +29,9 @@ const PF = {
 const DAYS_VALID = 7; // how long the download link works after payment
 
 import crypto from "node:crypto";
-import { put, get } from "@vercel/blob";
+import { Readable } from "node:stream";
+let _blob;
+const blob = async () => (_blob ||= await import("@vercel/blob"));
 
 const E = process.env, sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
 const sign = (b) => crypto.createHmac("sha256", E.ORDER_SECRET || "").update(b).digest("hex").slice(0, 32);
@@ -39,20 +41,26 @@ const html = (b) => new Response(`<!doctype html><meta charset=utf-8><meta name=
 const orderPath = (b) => `orders/${b}.json`;
 async function readOrder(b) {
   if (!/^DI[a-z0-9]+$/.test(b || "")) return null;
-  const r = await get(orderPath(b), { access: "private", useCache: false }).catch(() => null);
+  const r = await (await blob()).get(orderPath(b), { access: "private", useCache: false }).catch(() => null);
   return r && r.statusCode === 200 ? JSON.parse(await new Response(r.stream).text()) : null;
 }
-const writeOrder = (b, o) => put(orderPath(b), JSON.stringify(o), { access: "private", contentType: "application/json", allowOverwrite: true, addRandomSuffix: false });
+const writeOrder = async (b, o) => (await blob()).put(orderPath(b), JSON.stringify(o), { access: "private", contentType: "application/json", allowOverwrite: true, addRandomSuffix: false });
 async function catalog(site) {
   const t = await (await fetch(site + "/data/catalog.js")).text();
   return JSON.parse(t.slice(t.indexOf("=") + 1).trim().replace(/;$/, ""));
 }
 
-export default async function handler(request) {
+async function core(request) {
   const url = new URL(request.url), action = url.searchParams.get("action");
   const site = (E.SITE_URL || `https://${request.headers.get("host")}`).replace(/\/$/, "");
   const base = PF.base[E.PAYFAST_ENV === "live" ? "live" : "sandbox"];
   const self = `${site}/api/payfast-webhook`;
+
+  // health check: open /api/payfast-webhook?action=ping in the browser to see what is missing (no secrets shown)
+  if (action === "ping") {
+    let blobOk = true; try { await blob(); } catch (e) { blobOk = String(e.message || e); }
+    return json({ ok: true, env: Object.fromEntries(["PAYFAST_MERCHANT_ID", "PAYFAST_SECURED_KEY", "PAYFAST_MERCHANT_NAME", "PAYFAST_ENV", "ORDER_SECRET", "FALLBACK_EMAIL", "BLOB_STORE_ID", "BLOB_READ_WRITE_TOKEN"].map((k) => [k, !!E[k]])), blobPackage: blobOk, payfastBase: base });
+  }
 
   // 1) website asks to start a payment
   if (action === "start" && request.method === "POST") {
@@ -111,9 +119,32 @@ export default async function handler(request) {
     if (s !== sign(b || "")) return new Response("Invalid link", { status: 403 });
     const o = await readOrder(b);
     if (!o || o.status !== "paid" || !o.ids.includes(id) || Date.now() - o.paidAt > DAYS_VALID * 864e5) return new Response("Not available", { status: 403 });
-    const f = await get(`pdf/${id}.pdf`, { access: "private" }).catch(() => null);
+    const f = await (await blob()).get(`pdf/${id}.pdf`, { access: "private" }).catch(() => null);
     if (!f || f.statusCode !== 200) return new Response("File not found", { status: 404 });
     return new Response(f.stream, { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${id}.pdf"`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
   }
   return new Response("Not found", { status: 404 });
+}
+
+// Works with Vercel's classic Node style (req, res) and with Web Request style.
+export default async function handler(req, res) {
+  try {
+    if (!res) return await core(req); // Web Request style
+    const host = req.headers["x-forwarded-host"] || req.headers.host;
+    const url = `https://${host}${req.url}`;
+    let body;
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      if (req.body !== undefined && req.body !== null) body = typeof req.body === "string" || Buffer.isBuffer(req.body) ? req.body : JSON.stringify(req.body);
+      else { const c = []; for await (const x of req) c.push(x); body = Buffer.concat(c); }
+    }
+    const headers = new Headers(); for (const [k, v] of Object.entries(req.headers)) if (typeof v === "string") headers.set(k, v);
+    const r = await core(new Request(url, { method: req.method, headers, body }));
+    res.statusCode = r.status; r.headers.forEach((v, k) => res.setHeader(k, v));
+    if (r.body) Readable.fromWeb(r.body).pipe(res); else res.end();
+  } catch (e) {
+    console.error("payfast-webhook error:", e);
+    const out = JSON.stringify({ error: "server error", detail: String((e && e.message) || e) });
+    if (res) { res.statusCode = 500; res.setHeader("Content-Type", "application/json"); res.end(out); }
+    else return new Response(out, { status: 500, headers: { "Content-Type": "application/json" } });
+  }
 }
