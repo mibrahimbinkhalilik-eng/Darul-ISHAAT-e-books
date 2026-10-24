@@ -37,3 +37,36 @@ export default async function handler(req, res) {
 
     if (action === "start" && req.method === "POST") {
       const { ids, name, phone } = await readBody(req);
+      const t = await (await fetch(site + "/data/catalog.js")).text();
+      let cat; try { cat = JSON.parse(t.slice(t.indexOf("["), t.lastIndexOf("]") + 1)); } catch (e) { return sendJson(res, { error: "catalog read failed", detail: String(e.message) + " | starts: " + t.slice(0, 60) }, 502); }
+      const books = (Array.isArray(ids) ? ids : []).map((i) => cat.find((b) => b.id === i)).filter(Boolean);
+      if (!books.length || !name || !phone) return sendJson(res, { error: "Missing order details" }, 400);
+      const amount = books.reduce((s, b) => s + b.price, 0); // price comes from the catalog, not from the browser
+      const basket = "DI" + Date.now().toString(36) + crypto.randomBytes(4).toString("hex");
+      const r = await fetch(base + TOKEN_PATH, {
+        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ MERCHANT_ID: E.PAYFAST_MERCHANT_ID || "", SECURED_KEY: E.PAYFAST_SECURED_KEY || "", BASKET_ID: basket, TXNAMT: String(amount), CURRENCY_CODE: "PKR" }),
+      });
+      const raw = await r.text(); let tr = {}; try { tr = JSON.parse(raw); } catch {}
+      if (!tr.ACCESS_TOKEN) return sendJson(res, { error: "PayFast token failed", detail: `HTTP ${r.status}: ${raw.slice(0, 200)}` }, 502);
+      return sendJson(res, {
+        url: base + POST_PATH,
+        fields: {
+          CURRENCY_CODE: "PKR", MERCHANT_ID: E.PAYFAST_MERCHANT_ID, MERCHANT_NAME: E.PAYFAST_MERCHANT_NAME || "Darul Ishaat",
+          TOKEN: tr.ACCESS_TOKEN, PROCCODE: "00", TXNAMT: String(amount), CUSTOMER_MOBILE_NO: phone,
+          CUSTOMER_EMAIL_ADDRESS: E.FALLBACK_EMAIL || "orders@example.com", SIGNATURE: crypto.randomBytes(8).toString("hex"),
+          VERSION: "MERCHANTCART-0.1", TXNDESC: books.map((b) => b.title).join(", ").slice(0, 100),
+          SUCCESS_URL: `${site}/api/payfast-webhook?action=return`, FAILURE_URL: site + "/?payment=failed", BASKET_ID: basket,
+          ORDER_DATE: new Date().toISOString().slice(0, 19).replace("T", " "), CHECKOUT_URL: `${site}/api/payfast-webhook?action=ipn`, TRAN_TYPE: "ECOMM_PURCHASE",
+        },
+      });
+    }
+
+    if (action === "return") return page(res, "<h2>Thank you!</h2><p>If your payment went through, our representative will confirm it and send your PDF link on WhatsApp shortly.</p>");
+    if (action === "ipn") return send(res, 200, "text/plain", "ok");
+    return send(res, 404, "text/plain", "Not found");
+  } catch (e) {
+    console.error("payfast-webhook error:", e);
+    try { sendJson(res, { error: "server error", detail: String((e && e.message) || e) }, 500); } catch {}
+  }
+}
