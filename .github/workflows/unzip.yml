@@ -7,14 +7,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Move files into folders
+      - name: Unpack every zip and move files into folders
         run: |
-          mkdir -p api assets/js assets/css data
-          for f in payfast-webhook.js:api app.js:assets/js reader.js:assets/js style.css:assets/css reader.css:assets/css catalog.js:data series.js:data config.js:assets/js; do
+          mkdir -p api assets/js assets/css data books
+          shopt -s nullglob
+          for z in *.zip; do
+            if [ "$z" = "site_code.zip" ]; then rm -f "$z"; echo "removed old $z"; continue; fi
+            unzip -oq "$z" && echo "unpacked $z" && rm -f "$z"
+          done
+          if [ -d darul-ishaat-ebook ]; then cp -rf darul-ishaat-ebook/. . && rm -rf darul-ishaat-ebook; fi
+          for f in payfast-webhook.js:api app.js:assets/js reader.js:assets/js config.js:assets/js style.css:assets/css reader.css:assets/css catalog.js:data series.js:data; do
             name="${f%%:*}"; dir="${f##*:}"
             if [ -f "$name" ]; then mv -f "$name" "$dir/$name"; echo "moved $name -> $dir/"; fi
           done
+          rm -f assets/js/catalog.js
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add -A
-          if git diff --cached --quiet; then echo "nothing to move"; else git commit -m "Move files into folders" && git push; fi
+          if git diff --cached --quiet; then echo "nothing to do"; else git commit -m "Unpack and update site" && git push; fi
