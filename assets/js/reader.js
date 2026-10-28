@@ -25,7 +25,10 @@ addEventListener("scroll",()=>{const mid=scrollY+innerHeight/2;for(const d of P.
 // ---- Protection layer (front-end deterrents) ----
 function pageUrl(p){return IMG+id+"/pages/"+String(p).padStart(4,"0")+".webp"}
 function drawPage(d,p){const c=document.createElement("canvas"),i=new Image();i.decoding="async";
- i.onload=()=>{c.width=i.naturalWidth;c.height=i.naturalHeight;c.getContext("2d").drawImage(i,0,0);d.prepend(c)};
+ i.onload=()=>{c.width=i.naturalWidth;c.height=i.naturalHeight;const x=c.getContext("2d");x.drawImage(i,0,0);
+  let w="";try{const j=JSON.parse(localStorage.wm||"{}");if(j.n)w=j.n+" - "+(j.p||"")}catch(_){}
+  if(w){const fs=Math.max(14,Math.round(c.width/22));x.font="bold "+fs+"px sans-serif";x.fillStyle="rgba(90,90,90,.16)";x.textAlign="center";x.save();x.translate(c.width/2,c.height/2);x.rotate(-Math.PI/5);for(let y=-c.height;y<c.height;y+=fs*4)x.fillText(w,0,y);x.restore();x.font=Math.max(10,Math.round(fs*.6))+"px sans-serif";x.fillStyle="rgba(60,60,60,.6)";x.fillText("Licensed to "+w,c.width/2,c.height-8)}
+  d.prepend(c)};
  i.onerror=()=>{d.innerHTML="<div class=lock>Page "+p+" could not be loaded.<br>Please check your connection and reload.</div>"};
  i.src=pageUrl(p);c.oncontextmenu=e=>e.preventDefault()}
 const isField=e=>e.target&&(e.target.id==="q"||e.target.id==="pg");
