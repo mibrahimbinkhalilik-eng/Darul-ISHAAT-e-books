@@ -12,7 +12,7 @@ var bs=C.filter(function(b){return ids.indexOf(b.id)>-1}),tot=bs.reduce(function
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 if(!bs.length)a.innerHTML="<p>Your cart is empty.</p><a class=btn href='index.html'>Back to the library</a>";
 else{a.innerHTML="<h2>Demo checkout</h2>"+bs.map(function(b){return"<div class=row><span>"+esc(b.title)+"</span><b>Rs. "+b.price+"</b></div>"}).join("")+"<p><b>Total: Rs. "+tot+"</b></p><button class=btn id=p>Pay (demo)</button><small>Pressing this does not charge anything.</small>";
-document.getElementById("p").onclick=function(){a.innerHTML="<h2>Payment successful (DEMO)</h2>"+bs.map(function(b){return"<button class=btn data-id='"+esc(b.id)+"'>Download PDF: "+esc(b.title)+"</button>"}).join("")+"<p id=st style='color:#14532d'></p>"+"<small>Your PDF is stamped with your name and number: "+esc(NM)+" / "+esc(PH)+". Demo files contain only the first 12 pages. The real store will send the full book after a real payment.</small><a class=btn style='background:#555' href='index.html'>Back to the library</a>";try{localStorage.cart="{}"}catch(e){}}}
+document.getElementById("p").onclick=function(){a.innerHTML="<h2>Payment successful (DEMO)</h2>"+bs.map(function(b){return"<a class=btn href='reader.html?b="+encodeURIComponent(b.id)+"&demo=1'>Read online: "+esc(b.title)+"</a>"}).join("")+"<small>Read online only, there is no download. Every page is stamped with your name and number: "+esc(NM)+" / "+esc(PH)+". In the real store the full book opens after your payment is confirmed.</small><a class=btn style='background:#555' href='index.html'>Back to the library</a>";try{localStorage.cart="{}"}catch(e){}}}
 
 function mkpdf(pages){var enc=new TextEncoder(),parts=[],off=[],len=0;function add(x){if(typeof x=="string")x=enc.encode(x);parts.push(x);len+=x.length}
 function obj(n,body){off[n]=len;add(n+" 0 obj\n");if(typeof body=="string")add(body);else{body.forEach(add)}add("\nendobj\n")}
@@ -33,5 +33,4 @@ return new Promise(function(r){c.toBlob(function(b){b.arrayBuffer().then(functio
 function loadImg(u){return new Promise(function(r,j){var i=new Image();i.onload=function(){r(i)};i.onerror=j;i.src=u})}
 async function build(id,btn){var st=document.getElementById("st"),pg=[];btn.disabled=true;try{for(var p=1;p<=12;p++){st.textContent="Preparing PDF... page "+p+"/12";var im=await loadImg("books/"+encodeURIComponent(id)+"/pages/"+String(p).padStart(4,"0")+".webp");pg.push(await stamp(im))}
 var bl=mkpdf(pg),a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download=id+"-demo.pdf";document.body.appendChild(a);a.click();st.textContent="Done. Your PDF is saved."}catch(e){st.textContent="Could not build the PDF: "+e}btn.disabled=false}
-document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("button[data-id]");if(b)build(b.getAttribute("data-id"),b)});
 </script></body></html>
